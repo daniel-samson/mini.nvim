@@ -614,6 +614,8 @@ MiniFiles.config = {
 
   -- General options
   options = {
+    -- Whether to use a custom command instead when deleting files and directories
+    delete_command = nil,
     -- Whether to delete permanently or move into module-specific trash
     permanent_delete = true,
     -- Whether to use for editing directories
@@ -2448,7 +2450,7 @@ H.fs_actions_apply = function(fs_actions, opts)
 
   -- Delete last to not lose anything too early (just in case)
   for _, path in ipairs(fs_actions.delete) do
-    local ok, success = pcall(H.fs_delete, path, opts.options.permanent_delete)
+    local ok, success = pcall(H.fs_delete, path, opts.options.permanent_delete, opts.options.delete_command)
     local data = { action = 'delete', from = path }
     if ok and success then H.trigger_event('MiniFilesActionDelete', data) end
   end
@@ -2496,7 +2498,11 @@ H.fs_copy = function(from, to)
   return success
 end
 
-H.fs_delete = function(path, permanent_delete)
+H.fs_delete = function(path, permanent_delete, delete_command)
+  -- Use delete_command if available
+  if delete_command then return os.execute(delete_command .. ' ' .. path) == 0 end
+
+  -- Use permanent delete if requested
   if permanent_delete then return vim.fn.delete(path, 'rf') == 0 end
 
   -- Move to trash instead of permanent delete
